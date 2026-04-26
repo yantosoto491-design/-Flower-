@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Surprise Gift - Night Flower Garden</title>
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+  
+  body {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    /* Mengatur agar konten mulai dari atas saat surprise terbuka */
+    align-items: center; 
+    flex-direction: column;
+    background: linear-gradient(135deg,#ff9a9e,#fad0c4,#fbc2eb);
+    overflow: hidden;
+    text-align: center;
+    position: relative;
+  }
+
+  canvas { 
+    display: none; 
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  /* Layer UI disesuaikan agar teks berada lebih ke atas */
+  #ui-layer {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 10vh; /* Memberi jarak dari atas layar */
+    pointer-events: none;
+  }
+
+  button {
+    padding: 15px 35px;
+    font-size: 22px;
+    border: none;
+    border-radius: 50px;
+    background: white;
+    color: #ff4b7d;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(255,255,255,.7);
+    transition: 0.3s;
+    pointer-events: auto;
+    /* Menjaga tombol tetap di tengah sebelum diklik */
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  button:hover { transform: translateY(-50%) scale(1.08); }
+
+  #surprise {
+    display: none;
+    animation: fadeIn 1.5s ease;
+    max-width: 90%;
+    width: 500px;
+  }
+
+  #surprise h1 {
+    color: white;
+    margin-bottom: 10px;
+    font-size: 30px;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  }
+
+  #surprise p {
+    color: white;
+    font-size: 17px;
+    line-height: 1.5;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 15px;
+    border-radius: 15px;
+    backdrop-filter: blur(5px);
+  }
+
+  .confetti {
+    position: absolute;
+    width: 10px; height: 10px; top: -10px;
+    z-index: 5;
+    animation: fall linear forwards;
+  }
+
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="ui-layer">
+  <button id="btn" onclick="openGift()">🎁 Open Surprise</button>
+
+  <div id="surprise">
+    <h1>I Made This For You💐</h1>
+    <p>
+        I don't know how to explain but I'm lucky to meet someone like you♥️
+    </p>
+  </div>
+</div>
+
+<audio id="music">
+  <source src="ssstik.io_1777207230036.mp3">
+</audio>
+
+<script>
+function openGift() {
+    document.getElementById("btn").style.display = "none";
+    document.getElementById("surprise").style.display = "block";
+    
+    // Ubah posisi container agar teks rapi di atas
+    document.getElementById("ui-layer").style.justifyContent = "flex-start";
+
+    document.getElementById("music").play();
+
+    const cvs = document.getElementById("c");
+    cvs.style.display = "block";
+    document.body.style.background = "#020808"; 
+    startFlowerAnimation();
+
+    for(let i=0; i<40; i++){
+        let conf = document.createElement("div");
+        conf.classList.add("confetti");
+        conf.style.left = Math.random()*100+"vw";
+        conf.style.background = `hsl(${Math.random()*360},100%,50%)`;
+        conf.style.animationDuration = (Math.random()*3+2)+"s";
+        document.body.appendChild(conf);
+        setTimeout(() => { conf.remove(); }, 5000);
+    }
+}
+
+// --- Animasi Bunga ---
+function startFlowerAnimation() {
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    let W, H, gY;
+
+    function resize() {
+      W = canvas.width = innerWidth;
+      H = canvas.height = innerHeight;
+      gY = H * 0.85; // Menurunkan sedikit posisi dasar bunga
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    const easeOut3 = t => 1 - Math.pow(1 - t, 3);
+    const easeOutBack = t => {
+      const c1 = 1.70158, c3 = c1 + 1;
+      return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    };
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+    const PART = Array.from({ length: 80 }, () => ({
+      x: Math.random(), y: Math.random(), sz: 0.7 + Math.random() * 2.5,
+      spd: 0.006 + Math.random() * 0.016, drft: (Math.random() - 0.5) * 0.003,
+      a: 0.12 + Math.random() * 0.45, dia: Math.random() > 0.35,
+      tp: Math.random() * Math.PI * 2, ts: 0.3 + Math.random() * 0.6
+    }));
+
+    const SPARKS = Array.from({ length: 22 }, (_, i) => ({
+      fi: i % 3, ox: (Math.random() - 0.5) * 180, oy: (Math.random() - 0.5) * 90,
+      sz: 1.0 + Math.random() * 2.5, life: Math.random(), ml: 1.5 + Math.random() * 3.0,
+      yellow: Math.random() > 0.38
+    }));
+
+    const FLOWERS = [
+      { ox: -0.18, oy: 0.025, hf: 0.230, sc: 0.85, d: 0.45, sf: 0.75, sa: 6, sp: 1.2 },
+      { ox:  0.02, oy: 0.000, hf: 0.290, sc: 1.00, d: 0.00, sf: 0.60, sa: 5, sp: 0.0 },
+      { ox:  0.17, oy: 0.018, hf: 0.250, sc: 0.90, d: 0.65, sf: 0.82, sa: 7, sp: 2.4 },
+    ];
+
+    const GRASS = [
+      { ox: -0.44, hf: 0.200, w: 3.5, cv:  18, c: '#288020' },
+      { ox: -0.40, hf: 0.250, w: 4.5, cv: -14, c: '#369828' },
+      { ox: -0.36, hf: 0.180, w: 3.0, cv:  24, c: '#288020' },
+      { ox: -0.32, hf: 0.220, w: 3.5, cv:   8, c: '#44b038' },
+      { ox:  0.30, hf: 0.210, w: 3.5, cv:  -8, c: '#369828' },
+      { ox:  0.37, hf: 0.245, w: 4.5, cv:  14, c: '#369828' },
+      { ox:  0.40, hf: 0.200, w: 3.5, cv: -18, c: '#288020' },
+    ];
+
+    const BASE_LEAVES = [
+      { dx: -52, dy: 14, rx: 22, ry: 13, a: -0.40 }, { dx:  52, dy: 14, rx: 22, ry: 13, a:  0.40 },
+      { dx: -26, dy: 22, rx: 20, ry: 12, a: -0.80 }, { dx:  26, dy: 22, rx: 20, ry: 12, a:  0.80 },
+      { dx:   0, dy: 27, rx: 18, ry: 11, a:  0.00 }
+    ];
+
+    function drawBG() {
+      ctx.fillStyle = '#030d0b';
+      ctx.fillRect(0, 0, W, H);
+      const g = ctx.createRadialGradient(W * 0.5, H * 0.58, 0, W * 0.5, H * 0.58, W * 0.62);
+      g.addColorStop(0,    'rgba(14, 52, 46, 0.90)');
+      g.addColorStop(0.42, 'rgba(6, 24, 20, 0.45)');
+      g.addColorStop(1,    'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    function tickParticles(dt) {
+      PART.forEach(p => {
+        p.y -= p.spd * dt; p.x += p.drft * dt; p.tp += p.ts * dt;
+        if (p.y < -0.02) { p.y = 1.02; p.x = Math.random(); }
+        const twk = 0.58 + 0.42 * Math.sin(p.tp);
+        const px = p.x * W, py = p.y * H;
+        ctx.save();
+        ctx.globalAlpha = p.a * twk;
+        ctx.fillStyle = '#4dd8c6';
+        if (p.dia) {
+          ctx.translate(px, py); ctx.rotate(Math.PI / 4);
+          ctx.fillRect(-p.sz * 0.5, -p.sz * 0.5, p.sz, p.sz);
+        } else {
+          ctx.beginPath(); ctx.arc(px, py, p.sz * 0.5, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+      });
+    }
+
+    function drawPetal(cx, cy, angle, len, wid, col) {
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(angle); ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.bezierCurveTo( wid * 0.58, -len * 0.12, wid * 0.46, -len * 0.86, 0, -len);
+      ctx.bezierCurveTo(-wid * 0.46, -len * 0.86, -wid * 0.58, -len * 0.12, 0, 0);
+      ctx.fillStyle = col; ctx.fill(); ctx.restore();
+    }
+
+    function drawLeaf(cx, cy, angle, sz, col, alpha) {
+      ctx.save(); ctx.globalAlpha = alpha; ctx.translate(cx, cy); ctx.rotate(angle); ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.bezierCurveTo( sz * 0.38, -sz * 0.18, sz * 0.30, -sz * 0.78, 0, -sz);
+      ctx.bezierCurveTo(-sz * 0.30, -sz * 0.78, -sz * 0.38, -sz * 0.18, 0, 0);
+      ctx.fillStyle = col; ctx.fill(); ctx.restore();
+    }
+
+    function drawFlowerHead(cx, cy, sc, bp) {
+      const pl = 30 * sc * bp, pw = 20 * sc * bp, cr = 11 * sc * bp;
+      const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, pl * 2.5);
+      halo.addColorStop(0, 'rgba(100, 224, 214, 0.13)'); halo.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(cx, cy, pl * 2.5, 0, Math.PI * 2); ctx.fill();
+      for (let i = 0; i < 6; i++) drawPetal(cx, cy, (i / 6) * Math.PI * 2 + Math.PI / 6, pl * 0.86, pw * 0.80, '#2aaba2');
+      for (let i = 0; i < 6; i++) drawPetal(cx, cy, (i / 6) * Math.PI * 2, pl, pw, '#5dd9d0');
+      ctx.beginPath(); ctx.ellipse(cx, cy, cr * 1.18, cr * 0.70, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#d4f0ec'; ctx.fill();
+      const cg = ctx.createRadialGradient(cx, cy - cr * 0.12, 0, cx, cy, cr * 1.4);
+      cg.addColorStop(0, 'rgba(255, 255, 255, 0.98)'); cg.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = cg; ctx.beginPath(); ctx.ellipse(cx, cy, cr * 1.38, cr * 0.80, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx, cy, cr * 0.60, cr * 0.36, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#e8b818'; ctx.fill();
+    }
+
+    function drawFlower(f, prog, t) {
+      if (prog <= 0) return;
+      const cx = W / 2 + f.ox * W, by = gY + f.oy * H, sh = f.hf * H, sc = f.sc;
+      const gp = easeOut3(clamp(prog, 0, 1)), ch = sh * gp;
+      const sway = Math.sin(t * f.sf + f.sp) * f.sa;
+      const tx = cx + sway, ty = by - ch;
+      ctx.beginPath(); ctx.moveTo(cx, by); ctx.quadraticCurveTo(cx + sway * 0.48, by - ch * 0.5, tx, ty);
+      ctx.strokeStyle = '#25a090'; ctx.lineWidth = 4 * sc; ctx.stroke();
+      if (gp > 0.18) drawLeaf(cx + sway * 0.35, by - ch * 0.47, -Math.PI * 0.33, 26 * sc, '#1a9288', clamp((gp - 0.18) / 0.38, 0, 1));
+      if (gp > 0.74) drawFlowerHead(tx, ty, sc, clamp(easeOutBack((gp - 0.74) / 0.26), 0, 1.06));
+    }
+
+    function drawBaseLeaves(prog) {
+      if (prog <= 0) return;
+      const p = easeOut3(clamp(prog, 0, 1)), sc = clamp(Math.min(W, H) * 0.0014, 0.55, 2.5);
+      const cx = W / 2 + 0.015 * W, cy = gY + 0.022 * H;
+      BASE_LEAVES.forEach((l, i) => {
+        const lp = clamp(p * 2.2 - i * 0.18, 0, 1);
+        if (lp <= 0) return;
+        ctx.save(); ctx.globalAlpha = lp * 0.90; ctx.translate(cx + l.dx * sc, cy + l.dy * sc);
+        ctx.rotate(l.a); ctx.beginPath(); ctx.ellipse(0, 0, l.rx * sc, l.ry * sc, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#12706a'; ctx.fill(); ctx.restore();
+      });
+    }
+
+    function drawGrass(prog) {
+      if (prog <= 0) return;
+      const p = easeOut3(clamp(prog, 0, 1)), cx = W / 2;
+      GRASS.forEach(b => {
+        const bx = cx + b.ox * W, bh = b.hf * H * p;
+        ctx.beginPath(); ctx.moveTo(bx, gY);
+        ctx.quadraticCurveTo(bx + b.cv * 0.55, gY - bh * 0.58, bx + b.cv * p, gY - bh);
+        ctx.lineWidth = b.w; ctx.strokeStyle = b.c; ctx.lineCap = 'round'; ctx.stroke();
+      });
+    }
+
+    const FL_START = 1.6, FL_DUR = 3.8;
+    let t0 = null, tLast = null;
+
+    function frame(ts) {
+      if (!t0) t0 = ts;
+      if (!tLast) tLast = ts;
+      const elapsed = (ts - t0) * 0.001, dt = (ts - tLast) * 0.001;
+      tLast = ts;
+      ctx.clearRect(0, 0, W, H);
+      drawBG();
+      tickParticles(dt);
+      drawGrass(Math.max(0, (elapsed - (FL_START + 2.0)) / 2.2));
+      drawBaseLeaves(Math.max(0, (elapsed - (FL_START + 0.25)) / 2.0));
+      FLOWERS.forEach(f => drawFlower(f, Math.max(0, (elapsed - FL_START - f.d) / FL_DUR), elapsed));
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+}
+</script>
+
+</body>
+</html>
